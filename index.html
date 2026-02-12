@@ -2,8 +2,77 @@
 <html>
 <head>
   <title>Weather Dashboard</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="script.js"></script>
+  <style>
+    body {
+      font-family: Arial;
+      background: #e3f2fd;
+      display: flex;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .card {
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 600px;
+      box-sizing: border-box;
+    }
+
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin: 6px 0;
+      box-sizing: border-box;
+    }
+
+    h3 {
+      margin: 20px 0 10px;
+    }
+
+    /* FLEXBOX */
+    .hourly {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 5px;
+    }
+
+    .daily {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .hour-card {
+      background: #f1f8ff;
+      padding: 12px;
+      min-width: 90px;
+      border-radius: 10px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .day-card {
+      background: #f1f8ff;
+      padding: 12px;
+      border-radius: 10px;
+      text-align: center;
+      flex: 1 1 calc(25% - 10px);
+      min-width: 120px;
+    }
+
+    .time, .day {
+      font-size: 13px;
+      color: #555;
+    }
+
+    .temp {
+      font-weight: bold;
+      margin-top: 6px;
+    }
+  </style>
 </head>
 <body>
 
@@ -22,5 +91,68 @@
   <h3>📅 7 Day Forecast</h3>
   <div id="daily" class="daily"></div>
 </div>
+
+<script>
+function formatHour(time) {
+  return new Date(time).toLocaleTimeString([], {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+}
+
+function formatDay(date) {
+  return new Date(date).toLocaleDateString([], { weekday: 'short' });
+}
+
+function getWeather() {
+  const city = document.getElementById("city").value;
+
+  fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${city}`)
+    .then(res => res.json())
+    .then(loc => {
+      if (!loc.results) return alert("City not found");
+
+   const { latitude, longitude, name, country } = loc.results[0];
+document.getElementById("cityName").innerText = `${name}, ${country}`;
+
+
+      fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}` +
+        `&current_weather=true&hourly=temperature_2m&daily=temperature_2m_max,temperature_2m_min&timezone=auto`
+      )
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("temp").innerText =
+          data.current_weather.temperature + "°C";
+
+        // Hourly (24 hours)
+        const hourly = document.getElementById("hourly");
+        hourly.innerHTML = "";
+        for (let i = 0; i < 24; i++) {
+          hourly.innerHTML += `
+            <div class="hour-card">
+              <div class="time">${formatHour(data.hourly.time[i])}</div>
+              <div class="temp">${data.hourly.temperature_2m[i]}°</div>
+            </div>`;
+        }
+
+        // Weekly (7 days)
+        const daily = document.getElementById("daily");
+        daily.innerHTML = "";
+        for (let i = 0; i < 7; i++) {
+          daily.innerHTML += `
+            <div class="day-card">
+              <div class="day">${formatDay(data.daily.time[i])}</div>
+              <div class="temp">
+                ${data.daily.temperature_2m_min[i]}° /
+                ${data.daily.temperature_2m_max[i]}°
+              </div>
+            </div>`;
+        }
+      });
+    });
+}
+</script>
 </body>
 </html> 
